@@ -2,6 +2,7 @@ import pytest
 import subprocess
 import time
 import socket
+import random
 
 def wait_for_port(port, host='localhost', timeout=5.0, only_once=False):
     """Wait until a port starts accepting TCP connections.
@@ -25,10 +26,13 @@ def wait_for_port(port, host='localhost', timeout=5.0, only_once=False):
                 raise TimeoutError(f'Waited too long for the port {port} on host {host} to start accepting '
                                    'connections.') from ex
 
+@pytest.fixture(scope="package")
+def server_port():
+    return random.randint(3000,9000)
 
 @pytest.fixture(scope="package")
-def server_fixture():
-    port = 5055
+def run_server_fixture(server_port):
+    port = server_port
     # before starting server make sure its not already running.
     try:
         wait_for_port(port, only_once=True)
@@ -63,8 +67,7 @@ def server_fixture():
     process.kill()
 
 class TestLoginViaBrowser():
-    base_url = "http://localhost:5055"
 
-    def test_landing_page_title(self, page, server_fixture):
-        page.goto(self.base_url)
+    def test_landing_page_title(self, page, run_server_fixture, server_port):
+        page.goto(f"http://localhost:{server_port}")
         assert page.title() == "BookReview"
