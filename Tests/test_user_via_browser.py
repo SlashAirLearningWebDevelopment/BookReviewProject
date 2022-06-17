@@ -129,7 +129,7 @@ class TestLoginViaBrowser():
         # now test login will return that user
         try:
             returned_user = login(new_username, new_password)
-            assert returned_user == {"username": new_username, "password": new_password, "dateOfBirth": "12/12/2020"}
+            assert returned_user == {"username": new_username, "password": new_password, "dateOfBirth": "02/01/2020"}
         except Exception as e:
             assert False, f"User was not registered hence login failed with {e.__class__}"
 
