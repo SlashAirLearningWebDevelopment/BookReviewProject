@@ -92,6 +92,8 @@ def run_server_fixture(server_port):
 
 class TestLoginViaBrowser():
 
+    login_url = "/user/login"
+    book_review_url = "/books"
 
     def test_landing_page_title(self, page, run_server_fixture, server_url):
         page.goto(server_url)
@@ -109,7 +111,7 @@ class TestLoginViaBrowser():
         page.wait_for_load_state("networkidle")
 
         # test page has been redirected
-        assert("/user/login" in page.url)
+        assert(self.login_url in page.url)
 
 
     def test_register_page_adds_user(self, page, run_server_fixture, server_url, new_username, new_password):
@@ -124,7 +126,7 @@ class TestLoginViaBrowser():
         page.wait_for_load_state("networkidle")
 
         # test page has been redirected
-        assert("/user/login" in page.url)
+        assert(self.login_url in page.url)
 
         # now test login will return that user
         try:
@@ -132,6 +134,71 @@ class TestLoginViaBrowser():
             assert returned_user == {"username": new_username, "password": new_password, "dateOfBirth": "02/01/2020"}
         except Exception as e:
             assert False, f"User was not registered hence login failed with {e.__class__}"
+
+    def test_login_redirects_to_books(self, page, run_server_fixture, server_url, new_username, new_password):
+        # got to register page
+        page.goto(f"{server_url}")
+        page.fill("#username", new_username)
+        page.fill("#password1", new_password)
+        page.fill("#password2", new_password)
+        page.fill("#dateOfBirth", "2020-01-02")
+        page.click('#submit')
+
+        page.wait_for_load_state("networkidle")
+
+        # test page has been redirected
+        assert(self.login_url in page.url)
+
+        # now try login via browser
+        page.goto(f"{server_url}{self.login_url}")
+        page.fill("#username", new_username)
+        page.fill("#password", new_password)
+        page.click("#submit")
+
+        page.wait_for_load_state("networkidle")
+
+        assert(self.book_review_url in page.url)
+
+    def test_login_with_invalid_username(self, page, run_server_fixture, server_url, new_username, new_password):
+
+        page.goto(f"{server_url}{self.login_url}")
+        page.fill("#username", new_username)
+        page.fill("#password", new_password)
+        page.click("#submit")
+
+        page.wait_for_load_state("networkidle")
+
+        # check it still redirects to login page
+        assert(self.login_url in page.url)
+
+
+        assert(page.locator("label", has_text=f"user {new_username} does not exist").count() == 1)
+
+    def test_login_with_invalid_password(self, page, run_server_fixture, server_url, new_username, new_password):
+        # got to register page
+        page.goto(f"{server_url}")
+        page.fill("#username", new_username)
+        page.fill("#password1", new_password)
+        page.fill("#password2", new_password)
+        page.fill("#dateOfBirth", "2020-01-02")
+        page.click('#submit')
+
+        page.wait_for_load_state("networkidle")
+
+        # test page has been redirected
+        assert(self.login_url in page.url)
+
+        # now try login with invalid password
+        invalid_password = f"invalid_password_{new_password}"
+        page.goto(f"{server_url}{self.login_url}")
+        page.fill("#username", new_username)
+        page.fill("#password", invalid_password)
+        page.click("#submit")
+
+        page.wait_for_load_state("networkidle")
+
+        assert(page.locator("label", has_text=f"You provided invalid password").count() == 1)
+
 
     def test_landing_page_redirects_to_registered_if_not_logged_in(self, page, run_server_fixture, server_url):
         page.goto(server_url)
